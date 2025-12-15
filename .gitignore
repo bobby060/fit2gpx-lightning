@@ -1,0 +1,15 @@
+## Test output folders and test data
+*/output_garmin_gpx/
+*/output_strava_gpx/
+garmin.zip
+strava.zip
+strava_unzip/*
+
+
+## Rust
+**/target/**
+target
+**/*.rs.bk**
+Cargo.lock
+
+.claude
