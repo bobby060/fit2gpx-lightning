@@ -36,16 +36,20 @@ jobs:
 
       - name: Run tests
         run: cargo test --all-features
+        working-directory: fit2gpx-lightning
 
       - name: Run tests (no default features)
         run: cargo test --no-default-features
+        working-directory: fit2gpx-lightning
 
       - name: Check formatting
         run: cargo fmt -- --check
+        working-directory: fit2gpx-lightning
         if: matrix.os == 'ubuntu-latest'
 
       - name: Run clippy
         run: cargo clippy --all-features -- -D warnings
+        working-directory: fit2gpx-lightning
         if: matrix.os == 'ubuntu-latest'
 
   # Job 2: Build Python wheels
@@ -86,12 +90,13 @@ jobs:
           args: --release --out dist --features python
           sccache: 'true'
           manylinux: auto
+          working-directory: fit2gpx-lightning
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform.os }}-${{ matrix.platform.target }}
-          path: dist
+          path: fit2gpx-lightning/dist
 
   # Job 3: Publish to PyPI
   publish:
