@@ -37,10 +37,14 @@ jobs:
       - name: Run tests
         run: cargo test --all-features
         working-directory: fit2gpx-lightning
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
 
       - name: Run tests (no default features)
         run: cargo test --no-default-features
         working-directory: fit2gpx-lightning
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
 
       - name: Check formatting
         run: cargo fmt -- --check
@@ -51,6 +55,26 @@ jobs:
         run: cargo clippy --all-features -- -D warnings
         working-directory: fit2gpx-lightning
         if: matrix.os == 'ubuntu-latest'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          pip install pytest maturin
+
+      - name: Build Python package
+        run: maturin develop --release --features python
+        working-directory: fit2gpx-lightning
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
+
+      - name: Run Python tests
+        run: pytest tests/ -v
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
   # Job 2: Build Python wheels
   build-wheels:

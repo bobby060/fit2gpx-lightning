@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/yourusername/fit2gpx-lightning"
 keywords = ["fit", "gpx", "garmin", "strava", "conversion"]
 categories = ["command-line-utilities", "parsing"]
-readme = "README.md"
+readme = "../README.md"
 
 [lib]
 name = "fit2gpx_lightning"
