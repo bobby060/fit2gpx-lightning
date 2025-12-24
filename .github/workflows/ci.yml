@@ -22,6 +22,47 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache S3 test data
+        id: cache-test-data
+        uses: actions/cache@v4
+        with:
+          path: |
+            testdata
+            tests/*.zip
+          key: test-data-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: |
+            test-data-
+
+      - name: Download test data from S3
+        if: steps.cache-test-data.outputs.cache-hit != 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET: ${{ secrets.AWS_S3_TEST_DATA_BUCKET }}
+        run: |
+          # Install AWS CLI if not present (Ubuntu/macOS runners have it, Windows may need it)
+          if ! command -v aws &> /dev/null; then
+            echo "Installing AWS CLI..."
+            if [ "$RUNNER_OS" == "Windows" ]; then
+              choco install awscli -y
+            else
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              unzip awscliv2.zip
+              sudo ./aws/install
+            fi
+          fi
+
+          # Download test data
+          echo "Downloading test data from s3://${S3_BUCKET}..."
+          aws s3 sync s3://${S3_BUCKET}/testdata/ testdata/ --only-show-errors
+          aws s3 sync s3://${S3_BUCKET}/tests/ tests/ --exclude "*" --include "*.zip" --only-show-errors
+
+          # Verify downloads
+          echo "Downloaded files:"
+          ls -lh testdata/
+          ls -lh tests/*.zip 
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
