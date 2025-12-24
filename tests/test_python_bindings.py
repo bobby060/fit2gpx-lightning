@@ -32,8 +32,8 @@ except ImportError as e:
 # Test data paths (relative to project root)
 PROJECT_ROOT = Path(__file__).parent.parent
 TESTDATA_DIR = PROJECT_ROOT / "testdata"
-STRAVA_ZIP = PROJECT_ROOT / "strava.zip"
-GARMIN_ZIP = PROJECT_ROOT / "garmin.zip"
+STRAVA_ZIP = PROJECT_ROOT / "testdata/strava.zip"
+GARMIN_ZIP = PROJECT_ROOT / "testdata/garmin.zip"
 
 
 class TestFitToGpx:

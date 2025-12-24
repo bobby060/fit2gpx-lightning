@@ -56,12 +56,10 @@ jobs:
           # Download test data
           echo "Downloading test data from s3://${S3_BUCKET}..."
           aws s3 sync s3://${S3_BUCKET}/testdata/ testdata/ --only-show-errors
-          aws s3 sync s3://${S3_BUCKET}/tests/ tests/ --exclude "*" --include "*.zip" --only-show-errors
 
           # Verify downloads
           echo "Downloaded files:"
           ls -lh testdata/
-          ls -lh tests/*.zip 
 
       - name: Set up Python
         uses: actions/setup-python@v5
