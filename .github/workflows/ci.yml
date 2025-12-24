@@ -61,6 +61,20 @@ jobs:
         working-directory: fit2gpx-lightning
         if: matrix.os == 'ubuntu-latest'
 
+      # Create and activite venv
+      - name: Create and activate venv
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+        shell: bash
+
+      # Prepend venv to PATH
+      - name: Activate virtualenv
+        run: |
+          . .venv/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
+
+      # Install dependencies
 
       - name: Install Python dependencies
         run: |
