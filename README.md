@@ -35,7 +35,8 @@ from fit2gpx_lightning import fit_to_gpx, fit_to_gpx_bulk
 # Convert a single file
 fit_to_gpx('activity.fit', 'activity.gpx')
 
-# Convert an entire directory (processes immediate children only)
+# Convert an entire directory 
+# (processes immediate children only)
 stats = fit_to_gpx_bulk('./fit_files/', './gpx_files/')
 print(f"✓ Converted {stats['converted']} out of {stats['total']} files")
 print(f"✗ Failed: {stats['failed']}")
@@ -54,15 +55,13 @@ from fit2gpx_lightning import StravaConverter
 # Download from: https://www.strava.com/athlete/delete_your_account
 converter = StravaConverter('strava_export.zip')
 
-# Step 2: Convert FIT files to GPX
-print("Converting to GPX...")
+# Step 1: Convert FIT files to GPX
 stats = converter.strava_fit_to_gpx('./gpx_output/')
 print(f"✓ Converted: {stats['converted']}")
 print(f"✗ Failed: {stats['failed']}")
 
-# Step 3: Add metadata (activity names, types) from activities.csv. In place modification
+# Step 2: Add metadata (activity names, types) from activities.csv. In place modification
 converter.add_metadata_to_gpx('./gpx_output/')
-print("Done! GPX files now include activity names and types")
 ```
 
 ### Garmin Export Processing
@@ -76,14 +75,8 @@ from fit2gpx_lightning import GarminConverter
 # Download from: https://www.garmin.com/account/datamanagement/exportdata.html
 converter = GarminConverter('garmin_export.zip')
 
-# Step 1: Extract FIT files from nested archives
-print("Extracting FIT files from nested ZIPs...")
-stats = converter.extract_fit_files()
-print(f"Found {stats['total']} FIT files")
-
-# Step 2: Convert to GPX with automatic metadata matching
+# Step 1: Convert to GPX with automatic metadata matching
 # Matches FIT files to activities by timestamp (±10 second tolerance)
-print("Converting to GPX with metadata matching...")
 stats = converter.garmin_fit_to_gpx('./gpx_output/')
 print(f"✓ Converted: {stats['converted']}")
 print(f"✓ Matched with metadata: {stats['matched']}")
@@ -125,7 +118,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Clone repository
 git clone https://github.com/yourusername/fit2gpx-lightning
-cd fit2gpx-lightning
+cd fit2gpx-lightning/fit2gpx-lightning
 
 # Install maturin (Python build tool for Rust extensions)
 pip install maturin
@@ -192,6 +185,5 @@ For feature suggestions or errors, open an issue.
 - 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/fit2gpx-lightning/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/yourusername/fit2gpx-lightning/discussions)
 
----
 
-Made with ❤️ using Rust and Python
+

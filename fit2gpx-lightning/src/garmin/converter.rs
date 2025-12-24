@@ -1,7 +1,5 @@
 use crate::garmin::archive::{extract_all_timestamps, extract_fit_files};
-use crate::garmin::metadata::{
-    GarminActivity, build_timestamp_index, find_activity_by_timestamp, read_garmin_activities,
-};
+use crate::garmin::metadata::{GarminActivity, linear_activity_matching, read_garmin_activities};
 use crate::utils::gpx_metadata::add_metadata_to_gpx;
 use anyhow::Result;
 use rayon::prelude::*;
@@ -27,7 +25,7 @@ pub struct ConversionStats {
 /// and metadata injection from summarizedActivities.json.
 pub struct GarminConverter {
     input_path: PathBuf,
-    activities: Option<Vec<GarminActivity>>,
+    activities: Vec<GarminActivity<'static>>,
     verbose: bool,
 }
 
@@ -46,7 +44,7 @@ impl GarminConverter {
     pub fn new(dir_in: impl AsRef<Path>) -> Self {
         Self {
             input_path: dir_in.as_ref().to_path_buf(),
-            activities: None,
+            activities: Vec::new(),
             verbose: false,
         }
     }
@@ -57,38 +55,11 @@ impl GarminConverter {
         self
     }
 
-    /// Extract FIT files from nested Garmin archive structure
-    ///
-    /// Garmin exports have FIT files in nested ZIP files within
-    /// DI_CONNECT/DI-Connect-Uploaded-Files/*.zip
-    ///
-    /// # Returns
-    /// Statistics about the extraction operation
-    pub fn extract_fit_files(&mut self) -> Result<ConversionStats> {
-        if self.verbose {
-            println!("Extracting FIT files from Garmin archive...");
-        }
-
-        let fit_files = extract_fit_files(&self.input_path)?;
-
-        if self.verbose {
-            println!("Found {} FIT files", fit_files.len());
-        }
-
-        Ok(ConversionStats {
-            total: fit_files.len(),
-            converted: fit_files.len(),
-            failed: 0,
-            matched: 0,
-            unmatched: 0,
-        })
-    }
-
     /// Convert all FIT files to GPX with metadata matching
     ///
     /// Processes FIT files from the Garmin archive, converts to GPX,
-    /// matches with activities from summarizedActivities.json by timestamp,
-    /// and injects metadata.
+    /// matches with activities from summarizedActivities.json by timestamp.
+    /// Uses activity id from summarizedActivities.json as file name
     ///
     /// # Arguments
     /// * `output_dir` - Directory where GPX files will be written
@@ -100,23 +71,17 @@ impl GarminConverter {
         fs::create_dir_all(output_path)?;
 
         // Load activities metadata if not already loaded
-        if self.activities.is_none() {
+        if self.activities.is_empty() {
             if self.verbose {
                 println!("Loading activity metadata from summarizedActivities.json...");
             }
 
-            self.activities = Some(read_garmin_activities(&self.input_path)?);
-
+            let activities = read_garmin_activities(&self.input_path)?;
             if self.verbose {
-                println!(
-                    "Loaded {} activities",
-                    self.activities.as_ref().unwrap().len()
-                );
+                println!("Loaded {} activities", activities.len());
             }
+            self.activities = activities;
         }
-
-        let activities = self.activities.as_ref().unwrap();
-        let timestamp_index = build_timestamp_index(activities);
 
         // Extract FIT files from nested archives
         if self.verbose {
@@ -142,82 +107,54 @@ impl GarminConverter {
             ..Default::default()
         }));
 
-        // Parallel conversion with timestamp matching
-        fit_files
-            .par_iter()
-            .enumerate()
-            .for_each(|(idx, fit_file)| {
-                // Try to match with activity by timestamp
-                let matched_activity = fit_file
-                    .timestamp
-                    .and_then(|ts| find_activity_by_timestamp(ts, &timestamp_index, activities));
+        let matches = linear_activity_matching(&self.activities, &fit_files);
 
-                // Determine output filename
-                let activity_id = if let Some(activity) = matched_activity {
-                    stats.lock().unwrap().matched += 1;
-                    activity
-                        .activity_id
-                        .map(|id| id.to_string())
-                        .unwrap_or_else(|| format!("activity_{}", idx))
-                } else {
-                    stats.lock().unwrap().unmatched += 1;
-                    if self.verbose {
-                        eprintln!("No match found for FIT file: {}", fit_file.filename);
-                    }
-                    format!("unknown_activity_{}", idx)
-                };
+        stats.lock().unwrap().matched = matches.len();
+        stats.lock().unwrap().unmatched = total - matches.len();
 
-                // Write FIT data to temp file
-                let mut temp_fit = match NamedTempFile::new() {
-                    Ok(f) => f,
-                    Err(e) => {
-                        stats.lock().unwrap().failed += 1;
-                        if self.verbose {
-                            eprintln!(
-                                "Failed to create temp file for {}: {}",
-                                fit_file.filename, e
-                            );
-                        }
-                        return;
-                    }
-                };
+        matches.par_iter().for_each(|(activity_idx, fit_file_idx)| {
+            let activity = &self.activities[*activity_idx];
+            let fit_file = &fit_files[*fit_file_idx];
+            let activity_id = activity.activity_id.unwrap_or(0);
 
-                if let Err(e) = temp_fit.write_all(&fit_file.data) {
+            // Write FIT data to temp file
+            let mut temp_fit = match NamedTempFile::new() {
+                Ok(f) => f,
+                Err(e) => {
                     stats.lock().unwrap().failed += 1;
                     if self.verbose {
-                        eprintln!("Failed to write temp file for {}: {}", fit_file.filename, e);
+                        eprintln!(
+                            "Failed to create temp file for {}: {}",
+                            fit_file.filename, e
+                        );
                     }
                     return;
                 }
+            };
 
-                // Convert FIT to GPX
-                let output_gpx = output_path.join(format!("{}.gpx", activity_id));
+            if let Err(e) = temp_fit.write_all(&fit_file.data) {
+                stats.lock().unwrap().failed += 1;
+                if self.verbose {
+                    eprintln!("Failed to write temp file for {}: {}", fit_file.filename, e);
+                }
+                return;
+            }
 
-                match fit2gpx::Fit::file_to_gpx(temp_fit.path(), &output_gpx) {
-                    Ok(_) => {
-                        stats.lock().unwrap().converted += 1;
+            // Convert FIT to GPX
+            let output_gpx = output_path.join(format!("{}.gpx", activity_id));
 
-                        // Add metadata if we have a match
-                        if let Some(activity) = matched_activity {
-                            let _ = add_metadata_to_gpx(
-                                &output_gpx,
-                                Some(&activity.name()),
-                                Some(&activity.type_string()),
-                            );
-                        }
-
-                        if self.verbose {
-                            println!("Converted: {}", activity_id);
-                        }
-                    }
-                    Err(e) => {
-                        stats.lock().unwrap().failed += 1;
-                        if self.verbose {
-                            eprintln!("Failed to convert {}: {}", fit_file.filename, e);
-                        }
+            match fit2gpx::Fit::file_to_gpx(temp_fit.path(), &output_gpx) {
+                Ok(_) => {
+                    stats.lock().unwrap().converted += 1;
+                }
+                Err(e) => {
+                    stats.lock().unwrap().failed += 1;
+                    if self.verbose {
+                        eprintln!("Failed to convert {}: {}", fit_file.filename, e);
                     }
                 }
-            });
+            }
+        });
 
         let final_stats = stats.lock().unwrap().clone();
 
@@ -248,15 +185,15 @@ impl GarminConverter {
         let gpx_path = gpx_dir.as_ref();
 
         // Load activities if not already loaded
-        if self.activities.is_none() {
+        if self.activities.is_empty() {
             if self.verbose {
                 println!("Loading activity metadata...");
             }
 
-            self.activities = Some(read_garmin_activities(&self.input_path)?);
+            self.activities = read_garmin_activities(&self.input_path)?;
         }
 
-        let activities = self.activities.as_ref().unwrap();
+        let activities = &self.activities;
 
         // Build lookup by activity ID
         let activity_map: std::collections::HashMap<_, _> = activities

@@ -1,12 +1,13 @@
 use anyhow::{Context, Result};
 use fitparser::Value;
+use serde::Deserialize;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
 use zip::ZipArchive;
 
 /// Information about a FIT file extracted from Garmin archive
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct FitFileInfo {
     /// Original filename from nested archive
     pub filename: String,

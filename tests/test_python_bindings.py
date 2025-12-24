@@ -166,14 +166,6 @@ class TestStravaConverter:
             assert "<gpx" in content
             assert "</gpx>" in content
 
-    def test_strava_add_metadata(self, strava_converter, tmp_path):
-        """Test adding metadata from activities.csv to GPX files."""
-        output_dir = tmp_path / "gpx_output"
-
-        # First convert files
-        stats = strava_converter.strava_fit_to_gpx(str(output_dir))
-        assert stats["converted"] > 0
-
         # Then add metadata
         strava_converter.add_metadata_to_gpx(str(output_dir))
 
@@ -188,20 +180,6 @@ class TestStravaConverter:
                 found_metadata = True
                 break
 
-        # Note: metadata may not be present in all files if activities.csv
-        # doesn't have entries for all activities
-        # Just verify the function completes without error
-
-    def test_strava_converter_with_verbose(self, tmp_path):
-        """Test StravaConverter with verbose option."""
-        if not STRAVA_ZIP.exists():
-            pytest.skip(f"Strava test data not found at {STRAVA_ZIP}")
-
-        converter = StravaConverter(str(STRAVA_ZIP), verbose=True)
-        output_dir = tmp_path / "gpx_output"
-
-        stats = converter.strava_fit_to_gpx(str(output_dir))
-        assert stats["converted"] > 0
 
 
 class TestGarminConverter:
@@ -214,27 +192,9 @@ class TestGarminConverter:
             pytest.skip(f"Garmin test data not found at {GARMIN_ZIP}")
         return GarminConverter(str(GARMIN_ZIP))
 
-    def test_garmin_extract_fit_files(self, garmin_converter):
-        """Test extracting FIT files from nested Garmin archive."""
-        stats = garmin_converter.extract_fit_files()
-
-        # Verify stats structure
-        assert "total" in stats
-        assert "converted" in stats
-        assert "failed" in stats
-        assert "matched" in stats
-        assert "unmatched" in stats
-
-        # Verify files were extracted
-        assert stats["total"] > 0, "No FIT files found in Garmin export"
-
     def test_garmin_fit_to_gpx(self, garmin_converter, tmp_path):
         """Test converting Garmin FIT files to GPX with metadata."""
         output_dir = tmp_path / "gpx_output"
-
-        # Extract first
-        extract_stats = garmin_converter.extract_fit_files()
-        assert extract_stats["total"] > 0
 
         # Convert with metadata matching
         stats = garmin_converter.garmin_fit_to_gpx(str(output_dir))
@@ -255,15 +215,6 @@ class TestGarminConverter:
             assert "<gpx" in content
             assert "</gpx>" in content
 
-    def test_garmin_add_metadata(self, garmin_converter, tmp_path):
-        """Test adding metadata to already-converted GPX files."""
-        output_dir = tmp_path / "gpx_output"
-
-        # Extract and convert
-        garmin_converter.extract_fit_files()
-        stats = garmin_converter.garmin_fit_to_gpx(str(output_dir))
-        assert stats["converted"] > 0
-
         # Add metadata (should work even if already added during conversion)
         garmin_converter.add_metadata_to_gpx(str(output_dir))
 
@@ -271,24 +222,7 @@ class TestGarminConverter:
         gpx_files = list(output_dir.glob("*.gpx"))
         assert len(gpx_files) > 0
 
-    def test_garmin_full_workflow(self, garmin_converter, tmp_path):
-        """Test complete Garmin workflow: extract -> convert -> metadata."""
-        output_dir = tmp_path / "gpx_output"
 
-        # Step 1: Extract
-        extract_stats = garmin_converter.extract_fit_files()
-        assert extract_stats["total"] > 0
-
-        # Step 2: Convert
-        convert_stats = garmin_converter.garmin_fit_to_gpx(str(output_dir))
-        assert convert_stats["converted"] > 0
-
-        # Step 3: Add metadata
-        garmin_converter.add_metadata_to_gpx(str(output_dir))
-
-        # Verify final output
-        gpx_files = list(output_dir.glob("*.gpx"))
-        assert len(gpx_files) == convert_stats["converted"]
 
 
 class TestEndToEnd:

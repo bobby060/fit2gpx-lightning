@@ -128,8 +128,7 @@ impl StravaConverter {
 ///
 /// Example:
 ///     >>> from fit2gpx_lightning import GarminConverter
-///     >>> converter = GarminConverter("garmin_export.zip")
-///     >>> converter.extract_fit_files()
+///     >>> converter = GarminConverter("garmin_export.zip", verbose=True)
 ///     >>> converter.garmin_fit_to_gpx("./gpx_files/")
 ///     >>> converter.add_metadata_to_gpx("./gpx_files/")
 #[pyclass]
@@ -143,33 +142,22 @@ impl GarminConverter {
     ///
     /// Args:
     ///     dir_in (str): Path to Garmin export ZIP
+    ///     verbose (bool, optional): Enable verbose output (default: False)
     #[new]
-    fn new(dir_in: String) -> Self {
+    fn new(dir_in: String, verbose: Option<bool>) -> Self {
+        if verbose.is_none() {
+            return Self {
+                inner: crate::garmin::GarminConverter::new(dir_in),
+            };
+        }
+
+        let verbose = verbose.unwrap_or(false);
         Self {
-            inner: crate::garmin::GarminConverter::new(dir_in),
+            inner: crate::garmin::GarminConverter::new(dir_in).with_verbose(verbose),
         }
     }
 
-    /// Extract FIT files from nested Garmin archive structure
-    ///
-    /// Returns:
-    ///     dict: Statistics with keys 'total', 'converted', 'failed'
-    fn extract_fit_files(&mut self, py: Python) -> PyResult<PyObject> {
-        let stats = self
-            .inner
-            .extract_fit_files()
-            .map_err(|e| PyRuntimeError::new_err(format!("Extraction failed: {}", e)))?;
-
-        let dict = PyDict::new_bound(py);
-        dict.set_item("total", stats.total)?;
-        dict.set_item("converted", stats.converted)?;
-        dict.set_item("failed", stats.failed)?;
-        dict.set_item("matched", stats.matched)?;
-        dict.set_item("unmatched", stats.unmatched)?;
-        Ok(dict.into())
-    }
-
-    /// Convert FIT files to GPX with metadata matching
+    /// Convert FIT files to GPX with metadata matching from summarizedActivities.json to rename files to activity IDs
     ///
     /// Args:
     ///     output_dir (str): Directory where GPX files will be written
@@ -191,7 +179,7 @@ impl GarminConverter {
         Ok(dict.into())
     }
 
-    /// Add metadata to already-converted GPX files
+    /// Add metadata to already-converted GPX files, using metadata from summarizedActivities.json
     ///
     /// Args:
     ///     gpx_dir (str): Directory containing GPX files to update
