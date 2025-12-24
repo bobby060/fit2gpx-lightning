@@ -169,6 +169,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Set up QEMU
+        if: runner.os == 'Linux' && matrix.platform.target == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -186,7 +192,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform.os }}-${{ matrix.platform.target }}
-          path: fit2gpx-lightning/dist
+          path: dist
 
   # Job 3: Publish to PyPI
   publish:
