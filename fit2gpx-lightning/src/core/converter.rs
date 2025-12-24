@@ -50,10 +50,10 @@ pub fn fit_to_gpx(f_in: impl AsRef<Path>, f_out: impl AsRef<Path>) -> Result<()>
     }
 
     // Create parent directory for output if needed
-    if let Some(parent) = output.parent() {
-        if !parent.exists() {
-            std::fs::create_dir_all(parent)?;
-        }
+    if let Some(parent) = output.parent()
+        && !parent.exists()
+    {
+        std::fs::create_dir_all(parent)?;
     }
 
     // Convert using fit2gpx library

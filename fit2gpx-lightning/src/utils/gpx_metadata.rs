@@ -66,7 +66,9 @@ pub fn add_metadata_to_gpx(
                 skip_until_end_tag = Some(e.name().as_ref().to_vec());
                 continue;
             }
-            Ok(Event::End(ref e)) if skip_until_end_tag.as_ref() == Some(&e.name().as_ref().to_vec()) => {
+            Ok(Event::End(ref e))
+                if skip_until_end_tag.as_ref() == Some(&e.name().as_ref().to_vec()) =>
+            {
                 // We've reached the end of the tag we're skipping
                 skip_until_end_tag = None;
                 continue;
@@ -83,7 +85,11 @@ pub fn add_metadata_to_gpx(
                 }
             }
             Err(e) => {
-                return Err(anyhow::anyhow!("XML parse error at position {}: {}", reader.buffer_position(), e));
+                return Err(anyhow::anyhow!(
+                    "XML parse error at position {}: {}",
+                    reader.buffer_position(),
+                    e
+                ));
             }
         }
         buf.clear();

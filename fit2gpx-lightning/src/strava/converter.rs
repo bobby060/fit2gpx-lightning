@@ -86,7 +86,7 @@ impl StravaConverter {
             let fit_data = match file_info.file_type {
                 StravaFileType::FitGz => {
                     // Decompress .fit.gz to FIT bytes
-                    let fit_data = match file_info.decompress_gzip() {
+                    match file_info.decompress_gzip() {
                         Ok(data) => data,
                         Err(e) => {
                             stats.lock().unwrap().failed += 1;
@@ -95,12 +95,11 @@ impl StravaConverter {
                             }
                             return;
                         }
-                    };
-                    fit_data
+                    }
                 }
                 StravaFileType::GpxGz => {
                     // Decompress .gpx.gz to GPX bytes
-                    let gpx_data = match file_info.decompress_gzip() {
+                    match file_info.decompress_gzip() {
                         Ok(data) => data,
                         Err(e) => {
                             stats.lock().unwrap().failed += 1;
@@ -109,8 +108,7 @@ impl StravaConverter {
                             }
                             return;
                         }
-                    };
-                    gpx_data
+                    }
                 }
                 StravaFileType::Fit | StravaFileType::Gpx => {
                     // Use FIT data directly

@@ -1,7 +1,8 @@
-use pyo3::exceptions::{PyFileNotFoundError, PyRuntimeError, PyValueError};
+#![allow(unsafe_op_in_unsafe_fn)]
+
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use std::path::PathBuf;
 
 /// Simple FIT to GPX conversion
 ///
@@ -76,6 +77,7 @@ impl StravaConverter {
     /// Args:
     ///     dir_in (str): Path to Strava export ZIP or extracted directory
     #[new]
+    #[pyo3(signature = (dir_in, verbose=None))]
     fn new(dir_in: String, verbose: Option<bool>) -> Self {
         if verbose.is_none() {
             return Self {
@@ -144,6 +146,7 @@ impl GarminConverter {
     ///     dir_in (str): Path to Garmin export ZIP
     ///     verbose (bool, optional): Enable verbose output (default: False)
     #[new]
+    #[pyo3(signature = (dir_in, verbose=None))]
     fn new(dir_in: String, verbose: Option<bool>) -> Self {
         if verbose.is_none() {
             return Self {

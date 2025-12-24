@@ -138,9 +138,7 @@ pub fn linear_activity_matching(
     let mut activity_list: Vec<(i64, usize)> = activities
         .iter()
         .enumerate()
-        .filter_map(|(idx, activity)| {
-            activity.timestamp().map(|ts| (ts as i64, idx))
-        })
+        .filter_map(|(idx, activity)| activity.timestamp().map(|ts| (ts as i64, idx)))
         .collect();
     activity_list.sort_by_key(|(ts, _)| *ts);
 
@@ -149,9 +147,7 @@ pub fn linear_activity_matching(
     let mut file_list: Vec<(i64, usize)> = fit_files
         .iter()
         .enumerate()
-        .filter_map(|(idx, fit_file)| {
-            fit_file.timestamp.map(|ts| ((ts * 1000.0) as i64, idx))
-        })
+        .filter_map(|(idx, fit_file)| fit_file.timestamp.map(|ts| ((ts * 1000.0) as i64, idx)))
         .collect();
     file_list.sort_by_key(|(ts, _)| *ts);
 
@@ -168,8 +164,8 @@ pub fn linear_activity_matching(
         let mut best_match: Option<(i64, usize)> = None;
         let mut best_distance = i64::MAX;
 
-        for i in file_idx..file_list.len() {
-            let (fit_ts, fit_idx) = file_list[i];
+        for (fit_ts, fit_idx) in file_list.iter().skip(file_idx) {
+            let (fit_ts, fit_idx) = (*fit_ts, *fit_idx);
             let distance = (fit_ts - activity_ts).abs();
 
             // Stop if we've gone beyond the tolerance window
@@ -238,7 +234,11 @@ mod tests {
         let matches = linear_activity_matching(&activities, &fit_files);
 
         assert_eq!(matches.len(), 1, "Should match exactly");
-        assert_eq!(matches[0], (0, 0), "Should match first activity to first file");
+        assert_eq!(
+            matches[0],
+            (0, 0),
+            "Should match first activity to first file"
+        );
     }
 
     #[test]
@@ -335,12 +335,10 @@ mod tests {
 
     #[test]
     fn test_linear_matching_more_files_than_activities() {
-        let activities = vec![
-            create_test_activity(1000000000000.0, 1),
-        ];
+        let activities = vec![create_test_activity(1000000000000.0, 1)];
 
         let fit_files = vec![
-            create_test_fit_file(999999999.0, "file0.fit".to_string()),  // Too early
+            create_test_fit_file(999999999.0, "file0.fit".to_string()), // Too early
             create_test_fit_file(1000000000.0, "file1.fit".to_string()), // Match
             create_test_fit_file(1000000001.0, "file2.fit".to_string()), // Also within tolerance
             create_test_fit_file(1000000100.0, "file3.fit".to_string()), // No matching activity
@@ -386,30 +384,30 @@ mod tests {
     #[test]
     fn test_linear_matching_none_timestamps() {
         // Activity with None timestamp
-        let activities = vec![
-            GarminActivity {
-                activity_id: Some(1),
-                name: Some("Activity 1".to_string()),
-                activity_type: Some(ActivityType::String("Running".to_string())),
-                start_time_gmt: None,
-                begin_timestamp: None,
-                distance: Some(5000.0),
-                matched_file: None,
-            }
-        ];
+        let activities = vec![GarminActivity {
+            activity_id: Some(1),
+            name: Some("Activity 1".to_string()),
+            activity_type: Some(ActivityType::String("Running".to_string())),
+            start_time_gmt: None,
+            begin_timestamp: None,
+            distance: Some(5000.0),
+            matched_file: None,
+        }];
 
         // FIT file with None timestamp
-        let fit_files = vec![
-            FitFileInfo {
-                filename: "test.fit".to_string(),
-                data: vec![],
-                timestamp: None,
-            }
-        ];
+        let fit_files = vec![FitFileInfo {
+            filename: "test.fit".to_string(),
+            data: vec![],
+            timestamp: None,
+        }];
 
         let matches = linear_activity_matching(&activities, &fit_files);
 
-        assert_eq!(matches.len(), 0, "Activities/files without timestamps should not match");
+        assert_eq!(
+            matches.len(),
+            0,
+            "Activities/files without timestamps should not match"
+        );
     }
 
     #[test]
@@ -422,6 +420,10 @@ mod tests {
 
         let matches = linear_activity_matching(&activities, &fit_files);
 
-        assert_eq!(matches.len(), 1, "Should match with negative offset within tolerance");
+        assert_eq!(
+            matches.len(),
+            1,
+            "Should match with negative offset within tolerance"
+        );
     }
 }

@@ -20,7 +20,6 @@ pub struct StravaCsvActivity {
 }
 
 /// Handler for reading Strava's activities.csv file
-
 pub struct CsvHandler {
     pub activities: Vec<StravaCsvActivity>,
     pub headers: StringRecord,
@@ -137,10 +136,9 @@ impl CsvHandler {
                     && i != activity_date_idx
                     && i != distance_idx
                     && i != filename_idx
+                    && let Some(header) = headers.get(i)
                 {
-                    if let Some(header) = headers.get(i) {
-                        other_fields.insert(header.to_string(), value.to_string());
-                    }
+                    other_fields.insert(header.to_string(), value.to_string());
                 }
             }
 
@@ -182,7 +180,7 @@ impl CsvHandler {
         self.activities.iter().find(|a| {
             a.filename
                 .split('/')
-                .last()
+                .next_back()
                 .unwrap()
                 .split('.')
                 .next()

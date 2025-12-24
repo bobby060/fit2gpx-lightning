@@ -1,5 +1,5 @@
 pub mod archive;
-pub mod metadata;
 pub mod converter;
+pub mod metadata;
 
 pub use converter::GarminConverter;
