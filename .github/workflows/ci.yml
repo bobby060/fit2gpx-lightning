@@ -1,0 +1,210 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  release:
+    types: [published]
+
+jobs:
+  # Job 1: Lint and Test
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache S3 test data
+        id: cache-test-data
+        uses: actions/cache@v4
+        with:
+          path: |
+            testdata
+            tests/*.zip
+          key: test-data-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: |
+            test-data-
+
+      - name: Download test data from S3 (Unix)
+        if: steps.cache-test-data.outputs.cache-hit != 'true' && runner.os != 'Windows'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET: ${{ secrets.AWS_S3_TEST_DATA_BUCKET }}
+        shell: bash
+        run: |
+          # AWS CLI is pre-installed on Ubuntu/macOS runners
+          echo "Downloading test data from s3://${S3_BUCKET}..."
+          aws s3 sync s3://${S3_BUCKET}/testdata/ testdata/ --only-show-errors
+
+          # Verify downloads
+          echo "Downloaded files:"
+          ls -lh testdata/ || true
+
+      - name: Download test data from S3 (Windows)
+        if: steps.cache-test-data.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET: ${{ secrets.AWS_S3_TEST_DATA_BUCKET }}
+        shell: pwsh
+        run: |
+          # AWS CLI is pre-installed on Windows runners
+          Write-Host "Downloading test data from s3://$env:S3_BUCKET..."
+          aws s3 sync s3://$env:S3_BUCKET/testdata/ testdata/ --only-show-errors
+
+          # Verify downloads
+          Write-Host "Downloaded files:"
+          Get-ChildItem -Path testdata\ -ErrorAction SilentlyContinue | Format-Table
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      # - name: Run tests
+      #   run: cargo test --all-features
+      #   working-directory: fit2gpx-lightning
+      #   env:
+      #     MACOSX_DEPLOYMENT_TARGET: '11.0'
+
+      - name: Run tests (no default features)
+        run: cargo test --no-default-features
+        working-directory: fit2gpx-lightning
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
+
+      - name: Check formatting
+        run: cargo fmt -- --check
+        working-directory: fit2gpx-lightning
+        if: matrix.os == 'ubuntu-latest'
+
+      - name: Run clippy
+        run: cargo clippy --all-features -- -D warnings
+        working-directory: fit2gpx-lightning
+        if: matrix.os == 'ubuntu-latest'
+
+      # Python virtual environment setup
+      - name: Create virtualenv (Unix)
+        if: runner.os != 'Windows'
+        run: python -m venv .venv
+
+      - name: Create virtualenv (Windows)
+        if: runner.os == 'Windows'
+        run: python -m venv .venv
+        shell: pwsh
+
+      - name: Add venv to PATH (Unix)
+        if: runner.os != 'Windows'
+        run: echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
+
+      - name: Add venv to PATH (Windows)
+        if: runner.os == 'Windows'
+        run: echo "${{ github.workspace }}\.venv\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+
+      # Install dependencies
+      - name: Install Python dependencies
+        run: python -m pip install pytest maturin
+
+      - name: Build Python package
+        run: maturin develop --release --features python
+        working-directory: fit2gpx-lightning
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
+
+      - name: Run Python tests
+        run: pytest tests/ -v
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+  # Job 2: Build Python wheels
+  build-wheels:
+    name: Build wheels on ${{ matrix.platform.os }}g
+    runs-on: ${{ matrix.platform.os }}
+    needs: test
+    if: github.event_name == 'release'
+    strategy:
+      matrix:
+        platform:
+          - os: ubuntu-latest
+            target: x86_64
+          - os: ubuntu-latest
+            target: aarch64
+          - os: macos-13  # Intel
+            target: x86_64
+          - os: macos-14  # Apple Silicon
+            target: aarch64
+          - os: windows-latest
+            target: x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build wheels (maturin)
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist --features python
+          sccache: 'true'
+          manylinux: auto
+          working-directory: fit2gpx-lightning
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform.os }}-${{ matrix.platform.target }}
+          path: fit2gpx-lightning/dist
+
+  # Job 3: Publish to PyPI
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: build-wheels
+    if: github.event_name == 'release'
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+
+      - name: Publish to PyPI
+        uses: PyO3/maturin-action@v1
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          command: upload
+          args: --skip-existing dist/*

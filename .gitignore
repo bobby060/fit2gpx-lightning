@@ -1,0 +1,28 @@
+## Test output folders and test data
+*/output_garmin_gpx/
+*/output_strava_gpx/
+garmin.zip
+strava.zip
+strava_unzip/*
+testdata/*.fit
+
+## Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+## Rust
+**/target/**
+target
+**/*.rs.bk**
+Cargo.lock
+
+.claude
+CLAUDE.md

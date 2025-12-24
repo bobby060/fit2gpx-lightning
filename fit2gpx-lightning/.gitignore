@@ -1,0 +1,11 @@
+## Test output folders
+output_garmin_gpx/
+output_strava_gpx/
+
+
+
+## Rust
+**/target/**
+target
+**/*.rs.bk**
+Cargo.lock
