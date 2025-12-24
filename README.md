@@ -96,8 +96,6 @@ View full API reference at
 
 ## Performance
 
-Actual results (need to format):
-
 Benchmark converting my Strava export of 1354 activities.
 
 | Library | Time | Throughput | Speedup |
@@ -168,7 +166,7 @@ For feature suggestions or errors, open an issue.
 
 ## Changelog
 
-### v0.1.0 (2024-12-14)
+### v0.1.0 (2025-12-24)
 
 **Initial Release**
 
