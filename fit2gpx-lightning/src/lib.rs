@@ -3,6 +3,7 @@ pub mod garmin;
 pub mod strava;
 pub mod utils;
 
+#[cfg(feature = "python")]
 pub mod python;
 
 // Re-export main types and functions

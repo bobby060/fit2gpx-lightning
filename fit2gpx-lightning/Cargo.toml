@@ -35,8 +35,11 @@ pyo3 = { version = "0.22", features = ["extension-module", "anyhow"], optional =
 tempfile = "3.8"
 assert_fs = "1.0"
 
+[build-dependencies]
+pyo3-build-config = "0.22"
+
 [features]
-default = ["progress"]
+default = ["progress", "python"]
 progress = ["indicatif"]
 python = ["pyo3"]
 abi3 = ["pyo3/abi3-py38"]
