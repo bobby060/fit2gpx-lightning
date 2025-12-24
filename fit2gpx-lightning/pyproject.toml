@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "fit2gpx-lightning"
 version = "0.1.0"
-description = "Fast FIT to GPX converter - drop-in replacement for fit2gpx"
+description = "Fast FIT to GPX converter - replacement for fit2gpx"
 readme = "../README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}

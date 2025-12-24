@@ -2,7 +2,7 @@
 name = "fit2gpx-lightning"
 version = "0.1.0"
 edition = "2024"
-authors = ["Bobby <bobby060@example.com>"]
+authors = ["Bobby bobby060"]
 description = "Fast FIT to GPX converter with Python bindings - drop-in replacement for fit2gpx"
 license = "MIT"
 repository = "https://github.com/yourusername/fit2gpx-lightning"

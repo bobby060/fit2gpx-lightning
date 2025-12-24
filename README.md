@@ -2,6 +2,9 @@
 
  Simple replacement for the [fit2gpx](https://pypi.org/project/fit2gpx/) Python library with **400x performance improvements** thanks to Rust and parallel processing. I closely mirrored the original fit2gpx API for easy adoption (with a few adaptations and additions). 
 
+
+ ![PyPI](https://img.shields.io/pypi/v/fit2gpx-lightning?style=flat-square) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/fit2gpx-lightning?style=flat-square) ![PyPI - Status](https://img.shields.io/pypi/status/fit2gpx-lightning?style=flat-square) ![License](https://img.shields.io/pypi/l/fit2gpx-lightning?style=flat-square) ![Build Status](https://img.shields.io/github/actions/workflow/status/bobby060/fit2gpx-lightning/ci-cd.yml?branch=main&style=flat-square) 
+
 My motivation here was to both expose the wonderful [Rust fit2gpx](https://crates.io/crates/fit2gpx) in python to make it more accessible for those of us who are more comfortable scripting in python. The orignal python `fit2gpx` library is quite slow for bulk conversions and also doesn't have a simple way to process Garmin bulk exports, only Strava. Here, we fix both those issues
 
 > [!INFO] AI Disclaimer: I did use Claude Code for significant portions of the coding and documentation, though I made quite a few manual changes to the final output. I would categorize this as "AI assisted coding" not "Vibecoded."  Could I have done this all myself? Yes. Would it have taken too long for me to bother doing. Also yes.
@@ -44,7 +47,7 @@ print(f"✗ Failed: {stats['failed']}")
 
 ### Strava Export Processing
 
-The `strava_fit_to_gpx` function not only converts `.fit` files, but also unzips and converts `.fit.gz` files, extracts and unzips `.gpx.gz` files, and copies `.gpx`. We stream directly from the Zip archive to avoid intermediate IO.
+The `strava_fit_to_gpx` function not only converts `.fit` files, but also unzips and converts `.fit.gz` files, extracts `.gpx.gz` files, and copies `.gpx`.
 
 Complete example processing a Strava export:
 
@@ -131,7 +134,7 @@ cargo test --all-features
 ```
 
 ### Running Tests
-Integration tests won't pass unless you download your data
+Integration tests won't pass unless you download your data and move some .fit files to the `test_data/` folder. Strava export zip should be named `strava.zip` and Garmin export zip should be named `garmin.zip`.
 
 ```bash
 # Rust unit and integration tests
@@ -169,21 +172,20 @@ For feature suggestions or errors, open an issue.
 
 **Initial Release**
 
-- ✨ Core FIT to GPX conversion functions
-- 📊 Strava export support (.fit.gz, activities.csv)
-- 🏃 Garmin export support (nested ZIPs, summarizedActivities.json)
-- ⚡ Parallel processing for bulk operations
-- 📝 Metadata injection from CSV and JSON
-- 🐍 Python bindings via PyO3
-- 🚀 CI/CD pipeline for multi-platform wheels
-- 📚 Comprehensive documentation and examples
-- ✅ 17 passing tests
+-  Core FIT to GPX conversion functions
+-  Strava export support (.fit.gz, activities.csv)
+-  Garmin export support (nested ZIPs, summarizedActivities.json)
+-  Parallel processing for bulk operations
+-  Metadata injection from CSV and JSON
+-  Python bindings via PyO3
+-  CI/CD pipeline for multi-platform wheels
+-  Comprehensive documentation and examples
+-   Unit testing in rust and integration testing in Python using full exports downloaded in December 2025.
 
 ## Support
 
-- 📖 **Documentation**: This README + inline code documentation
-- 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/fit2gpx-lightning/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/yourusername/fit2gpx-lightning/discussions)
+- **Documentation**: This README + inline code documentation
+- **Issues**: [GitHub Issues](https://github.com/bobby060/fit2gpx-lightning/issues)
 
 
 
