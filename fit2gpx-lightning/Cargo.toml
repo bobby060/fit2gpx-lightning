@@ -29,7 +29,7 @@ quick-xml = "0.38"
 chrono = "0.4"
 fitparser = "0.5"
 indicatif = { version = "0.17", features = ["rayon"], optional = true }
-pyo3 = { version = "0.22", features = ["extension-module", "anyhow"], optional = true }
+pyo3 = { version = "0.22", features = ["extension-module", "anyhow", "abi3-py38"], optional = true }
 
 [dev-dependencies]
 tempfile = "3.8"
@@ -42,4 +42,3 @@ pyo3-build-config = "0.22"
 default = ["progress", "python"]
 progress = ["indicatif"]
 python = ["pyo3"]
-abi3 = ["pyo3/abi3-py38"]
