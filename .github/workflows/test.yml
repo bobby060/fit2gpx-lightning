@@ -74,7 +74,7 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          working-directory: fit2gpx-lightning
+          workspaces: fit2gpx-lightning
 
       - name: Run unit tests (no default features)
         run: cargo test --no-default-features
