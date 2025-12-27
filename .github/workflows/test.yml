@@ -28,7 +28,7 @@ jobs:
           path: |
             testdata
             tests/*.zip
-          key: test-data-${{ hashFiles('testdata') }}
+          key: ${{ runner.os }}-test-data-${{ hashFiles('testdata') }}
           restore-keys: |
             test-data-
 
@@ -74,7 +74,9 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: fit2gpx-lightning
+          workspaces: fit2gpx-lightning -> fit2gpx-lightning/target
+          key: ${{ runner.os }}-cargo
+
 
       - name: Run unit tests (no default features)
         run: cargo test --no-default-features
@@ -89,6 +91,8 @@ jobs:
       - name: Run clippy
         run: cargo clippy --all-features -- -D warnings
         working-directory: fit2gpx-lightning
+        if: runner.os == 'ubuntu-latest'  # Limit clippy to Ubuntu to save time
+
 
       # Python virtual environment setup
       - name: Create virtualenv (Unix)
