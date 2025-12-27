@@ -84,8 +84,6 @@ converter = GarminConverter('garmin_export.zip')
 # Matches FIT files to activities by timestamp (±10 second tolerance)
 stats = converter.garmin_fit_to_gpx('./gpx_output/')
 print(f"✓ Converted: {stats['converted']}")
-print(f"✓ Matched with metadata: {stats['matched']}")
-print(f"⚠ Unmatched: {stats['unmatched']}")
 print(f"✗ Failed: {stats['failed']}")
 
 # Optional: Update metadata for already-converted files
@@ -145,6 +143,11 @@ Contributions are welcome!
 For feature suggestions or errors, open an issue.
 
 ## Changelog
+
+### v0.1.2 (2025-12-27)
+- Update documentation for clarity
+- Minor code refactoring for readability
+- Add support for aarch64 Linux wheels in CI/CD pipeline
 
 ### v0.1.1 (2025-12-24)
 - Use `abi3` feature of PyO3 to build wheels compatible with multiple Python 3.x versions
