@@ -9,7 +9,7 @@
 
 My motivation here was to both expose the wonderful [Rust fit2gpx](https://crates.io/crates/fit2gpx) in python to make it more accessible for those of us who are more comfortable scripting in python. The orignal python `fit2gpx` library is quite slow for bulk conversions and also doesn't have a simple way to process Garmin bulk exports, only Strava. Here, we fix both those issues
 
-> [!NOTE] AI Disclaimer: I did use Claude Code for significant portions of the coding and documentation, though I made quite a few manual changes to the final output. I would categorize this as "AI assisted coding" not "Vibecoded."  Could I have done this all myself? Yes. Would it have taken too long for me to bother doing. Also yes.
+> AI Disclaimer: I did use Claude Code for significant portions of the coding and documentation, though I made quite a few manual changes to the final output. I would categorize this as "AI assisted coding" not "Vibecoded."  Could I have done this all myself? Yes. Would it have taken too long for me to bother doing. Also yes.
 
 ## Features
 - Convert `.fit` files to GPX format, one at a time or an entire folder at once
