@@ -139,11 +139,21 @@ jobs:
           name: wheels-windows-latest-x64
           path: dist
 
-      - name: Install wheel and test dependencies
+      - name: Install wheel and test dependencies (Unix)
+        if: runner.os != 'Windows'
         run: |
           python -m pip install --upgrade pip
           python -m pip install pytest
           python -m pip install dist/*.whl
+
+      - name: Install wheel and test dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          $wheel = Get-ChildItem -Path dist\*.whl | Select-Object -First 1
+          python -m pip install $wheel.FullName
 
       - name: Run basic Python tests
         run: pytest tests/test_python_bindings.py::TestFitToGpx tests/test_python_bindings.py::TestFitToGpxBulk -v
