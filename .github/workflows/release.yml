@@ -20,8 +20,8 @@ jobs:
         platform:
           - os: ubuntu-latest
             target: x86_64
-          # - os: ubuntu-latest
-          #   target: aarch64
+          - os: ubuntu-latest
+            target: aarch64
           - os: macos-15-intel  # Intel
             target: x86_64
           - os: macos-latest  # Apple Silicon
@@ -85,7 +85,7 @@ jobs:
           path: |
             testdata
             tests/*.zip
-          key: test-data-${{ hashFiles('testdata') }}
+          key: ${{ runner.os }}-test-data-${{ hashFiles('testdata') }}
           restore-keys: |
             test-data-
 

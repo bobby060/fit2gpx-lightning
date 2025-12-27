@@ -2,3 +2,5 @@
 members = [
     "fit2gpx-lightning",
 ]
+
+resolver="3"
