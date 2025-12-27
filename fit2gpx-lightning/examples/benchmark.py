@@ -29,10 +29,8 @@ def benchmark_fit2gpx_lightning(strava_zip, output_dir):
     start = time.time()
 
     converter = StravaConverter(strava_zip)
-    converter.unzip_activities()
-    converter.add_metadata_to_gpx(output_dir)
-
     stats = converter.strava_fit_to_gpx(output_dir)
+    converter.add_metadata_to_gpx(output_dir)
 
     duration = time.time() - start
 

@@ -1,0 +1,173 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  # Job 0: Run full test suite first
+  test:
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  # Job 1: Build Python wheels
+  build-wheels:
+    needs: test
+    name: Build wheels on ${{ matrix.platform.os }}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      matrix:
+        platform:
+          - os: ubuntu-latest
+            target: x86_64
+          - os: ubuntu-latest
+            target: aarch64
+          - os: macos-15-intel  # Intel
+            target: x86_64
+          - os: macos-latest  # Apple Silicon
+            target: aarch64
+          - os: windows-latest
+            target: x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up QEMU
+        if: runner.os == 'Linux' && matrix.platform.target == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build wheels (maturin)
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          sccache: 'true'
+          manylinux: auto
+          command: build
+          args: --release --out dist --features python --manifest-path fit2gpx-lightning/Cargo.toml
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform.os }}-${{ matrix.platform.target }}
+          path: dist
+
+  # Job 2: Test wheels before publishing
+  test-wheels:
+    name: Test wheels (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: build-wheels
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache S3 test data
+        id: cache-test-data
+        uses: actions/cache@v4
+        with:
+          path: |
+            testdata
+            tests/*.zip
+          key: ${{ runner.os }}-test-data-${{ hashFiles('testdata') }}
+          restore-keys: |
+            test-data-
+
+      - name: Download test data from S3 (Unix)
+        if: steps.cache-test-data.outputs.cache-hit != 'true' && runner.os != 'Windows'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET: ${{ secrets.AWS_S3_TEST_DATA_BUCKET }}
+        shell: bash
+        run: |
+          echo "Downloading test data from s3://${S3_BUCKET}..."
+          aws s3 sync s3://${S3_BUCKET}/testdata/ testdata/ --only-show-errors
+          echo "Downloaded files:"
+          ls -lh testdata/ || true
+
+      - name: Download test data from S3 (Windows)
+        if: steps.cache-test-data.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET: ${{ secrets.AWS_S3_TEST_DATA_BUCKET }}
+        shell: pwsh
+        run: |
+          Write-Host "Downloading test data from s3://$env:S3_BUCKET..."
+          aws s3 sync s3://$env:S3_BUCKET/testdata/ testdata/ --only-show-errors
+          Write-Host "Downloaded files:"
+          Get-ChildItem -Path testdata\ -ErrorAction SilentlyContinue | Format-Table
+
+      # Download the appropriate wheel for this platform
+      - name: Download wheels (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-ubuntu-latest-x86_64
+          path: dist
+
+      - name: Download wheels (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-latest-aarch64
+          path: dist
+
+      - name: Download wheels (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-windows-latest-x64
+          path: dist
+
+      - name: Install wheel and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          python -m pip install dist/*.whl
+
+      - name: Run basic Python tests
+        run: pytest tests/test_python_bindings.py::TestFitToGpx tests/test_python_bindings.py::TestFitToGpxBulk -v
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+  # Job 3: Publish to PyPI
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: test-wheels
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+
+      - name: Publish to PyPI
+        uses: PyO3/maturin-action@v1
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          command: upload
+          args: --skip-existing dist/*

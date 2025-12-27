@@ -97,7 +97,7 @@ impl StravaConverter {
     ///     output_dir (str): Directory where GPX files will be written
     ///
     /// Returns:
-    ///     dict: Statistics with keys 'total', 'converted', 'failed', 'matched'
+    ///     dict: Statistics with keys 'total', 'converted', 'failed'
     fn strava_fit_to_gpx(&mut self, py: Python, output_dir: String) -> PyResult<PyObject> {
         let stats = self
             .inner
@@ -108,7 +108,6 @@ impl StravaConverter {
         dict.set_item("total", stats.total)?;
         dict.set_item("converted", stats.converted)?;
         dict.set_item("failed", stats.failed)?;
-        dict.set_item("matched", stats.matched)?;
         Ok(dict.into())
     }
 
@@ -166,7 +165,7 @@ impl GarminConverter {
     ///     output_dir (str): Directory where GPX files will be written
     ///
     /// Returns:
-    ///     dict: Statistics with keys 'total', 'converted', 'failed', 'matched', 'unmatched'
+    ///     dict: Statistics with keys 'total', 'converted', 'failed'
     fn garmin_fit_to_gpx(&mut self, py: Python, output_dir: String) -> PyResult<PyObject> {
         let stats = self
             .inner
@@ -177,8 +176,6 @@ impl GarminConverter {
         dict.set_item("total", stats.total)?;
         dict.set_item("converted", stats.converted)?;
         dict.set_item("failed", stats.failed)?;
-        dict.set_item("matched", stats.matched)?;
-        dict.set_item("unmatched", stats.unmatched)?;
         Ok(dict.into())
     }
 

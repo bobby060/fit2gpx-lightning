@@ -46,21 +46,20 @@ def process_strava_export(export_zip, output_dir='./output_strava_gpx'):
 
     # Initialize converter
     print("🔧 Initializing converter...")
-    converter = StravaConverter(export_zip, verbose=True)
+    converter = StravaConverter(export_zip)
     print()
 
-    # Step 2: Convert to GPX
-    print("⚡ Step 2: Converting FIT files to GPX...")
+    # Step 1: Convert to GPX
+    print("⚡ Step 1: Converting FIT files to GPX...")
     stats = converter.strava_fit_to_gpx(output_dir)
     print(f"   ✓ Converted: {stats['converted']}")
     print(f"   ✗ Failed:    {stats['failed']}")
     print()
 
-    # Step 3: Add metadata
-    print("📝 Step 3: Adding metadata from activities.csv...")
+    # Step 2: Add metadata
+    print("📝 Step 2: Adding metadata from activities.csv...")
     converter.add_metadata_to_gpx(output_dir)
-    print(f"   ✓ Metadata injected into GPX files")
-    print()
+
 
     # Summary
     print("=" * 60)
