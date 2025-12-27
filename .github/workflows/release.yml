@@ -85,7 +85,7 @@ jobs:
           path: |
             testdata
             tests/*.zip
-          key: test-data-${{ hashFiles('testdata') }}
+          key: ${{ runner.os }}-test-data-${{ hashFiles('testdata') }}
           restore-keys: |
             test-data-
 
