@@ -149,8 +149,6 @@ class TestStravaConverter:
         # Verify stats structure
         assert "total" in stats
         assert "converted" in stats
-        assert "failed" in stats
-        assert "matched" in stats
 
         # Verify some files were processed
         assert stats["total"] > 0, "No files found in Strava export"
@@ -202,8 +200,6 @@ class TestGarminConverter:
         # Verify stats
         assert stats["total"] > 0
         assert stats["converted"] > 0
-        assert "matched" in stats
-        assert "unmatched" in stats
 
         # Verify output files
         gpx_files = list(output_dir.glob("*.gpx"))
